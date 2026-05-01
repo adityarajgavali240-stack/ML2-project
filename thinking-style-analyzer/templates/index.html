@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Cognitive Style AI — Professional Text Analysis Platform.">
+    <title>Cognitive Style AI | Professional Text Analysis</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <!-- ── Navigation ── -->
+    <nav id="navbar" class="navbar fade-in">
+        <div class="nav-content">
+            <div class="logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/>
+                </svg>
+                <span>Cognitive<span class="fw-300">.AI</span></span>
+            </div>
+            <button id="theme-toggle" class="theme-btn" aria-label="Toggle dark mode">
+                <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                </svg>
+                <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ── Hero Section ── -->
+    <section class="hero" id="hero">
+        <div class="hero-bg" style="background-image: url('/static/images/hero-bg.png');"></div>
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="badge fade-up">Enterprise-Grade NLP</div>
+            <h1 class="fade-up delay-1">Analyze Your <br/><span class="text-gradient">Thinking Style</span></h1>
+            <p class="fade-up delay-2">Leverage advanced Natural Language Processing to uncover the cognitive patterns underlying your written communication.</p>
+            <div class="hero-actions fade-up delay-3">
+                <button class="btn btn-primary btn-glow" onclick="document.getElementById('analyzer').scrollIntoView({behavior: 'smooth'})">Start Analysis</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Analyzer Section ── -->
+    <main id="analyzer" class="analyzer-section">
+        <div class="section-bg" style="background-image: url('/static/images/section-bg.png');"></div>
+        
+        <div class="container">
+            <div class="section-header fade-up">
+                <h2>Cognitive Pattern Analysis</h2>
+                <p>Input your text below to generate a comprehensive psychological profile.</p>
+            </div>
+
+            <!-- Input Area -->
+            <div class="glass-panel input-panel fade-up slide-up delay-1">
+                <div class="textarea-wrapper">
+                    <textarea id="text-input" placeholder="Enter a professional statement, email, or thought process here..." rows="8" maxlength="5000"></textarea>
+                    <div class="textarea-footer">
+                        <span id="char-count">0 / 5000</span>
+                        <span id="word-count-display">0 words</span>
+                    </div>
+                </div>
+                <div class="action-bar">
+                    <div class="action-group">
+                        <button id="analyze-btn" class="btn btn-primary" disabled>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                            Analyze Text
+                        </button>
+                        <button id="sample-btn" class="btn btn-outline">Load Sample</button>
+                    </div>
+                    <button id="clear-btn" class="btn btn-ghost">Clear</button>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loading-section" class="glass-panel hidden">
+                <div class="loader-container">
+                    <div class="spinner"></div>
+                    <h3 class="loading-title">Processing NLP Pipeline</h3>
+                    <p class="loading-text" id="loading-text">Extracting linguistic features...</p>
+                    <div class="progress-track"><div class="progress-fill"></div></div>
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div id="error-section" class="glass-panel error-panel hidden">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                <p id="error-message"></p>
+            </div>
+
+            <!-- Results State -->
+            <div id="results-section" class="hidden">
+                <div class="results-layout">
+                    <!-- Left Column -->
+                    <div class="results-col">
+                        <!-- Dominant Trait -->
+                        <div class="glass-panel dominant-panel fade-up slide-up">
+                            <div class="panel-header">
+                                <h3 class="panel-label">Primary Cognitive Style</h3>
+                            </div>
+                            <div class="dominant-content">
+                                <div class="trait-header">
+                                    <div id="dominant-icon" class="trait-icon-container"></div>
+                                    <h2 id="dominant-trait" class="trait-title"></h2>
+                                </div>
+                                <p id="dominant-description" class="trait-desc"></p>
+                                <div class="metric-box">
+                                    <span class="metric-label">Model Confidence</span>
+                                    <div class="confidence-value-container">
+                                        <span id="confidence-value" class="metric-value"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stats -->
+                        <div class="glass-panel stats-panel fade-up slide-up delay-1">
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <span class="stat-value" id="stat-words">0</span>
+                                    <span class="stat-label">Words</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value" id="stat-chars">0</span>
+                                    <span class="stat-label">Characters</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value" id="stat-tokens">0</span>
+                                    <span class="stat-label">Tokens</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="results-col">
+                        <!-- Chart -->
+                        <div class="glass-panel chart-panel fade-up slide-up delay-1">
+                            <div class="panel-header">
+                                <h3 class="panel-label">Distribution Profile</h3>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="pie-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Breakdown -->
+                        <div class="glass-panel breakdown-panel fade-up slide-up delay-2">
+                            <div class="panel-header">
+                                <h3 class="panel-label">Detailed Breakdown</h3>
+                            </div>
+                            <div id="score-bars" class="bars-container"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insights & Actions -->
+                <div class="glass-panel insight-panel fade-up slide-up delay-3">
+                    <div class="panel-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9l-7-7z"/><path d="M13 2v7h7"/></svg>
+                        <h3 class="panel-label">AI Insights</h3>
+                    </div>
+                    <p id="suggestion-text" class="insight-text"></p>
+                    
+                    <div class="results-actions">
+                        <button id="download-btn" class="btn btn-primary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                            Export PDF Report
+                        </button>
+                        <button id="new-analysis-btn" class="btn btn-outline">New Analysis</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ── Footer ── -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/>
+                </svg>
+                <span>Cognitive.AI</span>
+            </div>
+            <p class="footer-text">Advanced NLP & Machine Learning Platform</p>
+        </div>
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
