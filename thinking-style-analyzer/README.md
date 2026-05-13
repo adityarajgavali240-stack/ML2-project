@@ -10,6 +10,12 @@ Analyzes your text and classifies your thinking style into four categories:
 
 ---
 
+## 🎥 Demo
+
+![Demo Recording](assets/demo.webp)
+
+---
+
 ## 🚀 Quick Start
 
 ### 1. Install Dependencies
