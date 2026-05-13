@@ -43,7 +43,11 @@ const elements = {
   resultsSection: document.getElementById('results-section'),
   themeToggle: document.getElementById('theme-toggle'),
   downloadBtn: document.getElementById('download-btn'),
-  newAnalysisBtn: document.getElementById('new-analysis-btn')
+  newAnalysisBtn: document.getElementById('new-analysis-btn'),
+  fileUpload: document.getElementById('file-upload'),
+  summaryText: document.getElementById('summary-text'),
+  micBtn: document.getElementById('mic-btn'),
+  micText: document.getElementById('mic-text')
 };
 
 let pieChart = null;
@@ -96,6 +100,113 @@ elements.newAnalysisBtn.addEventListener('click', () => {
   elements.textInput.dispatchEvent(new Event('input'));
   document.getElementById('analyzer').scrollIntoView({ behavior: 'smooth' });
   elements.textInput.focus();
+});
+
+elements.fileUpload.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  elements.errorSection.classList.add('hidden');
+  elements.resultsSection.classList.add('hidden');
+  elements.loadingSection.classList.remove('hidden');
+  document.getElementById('loading-text').textContent = 'Extracting text from file...';
+  
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const res = await fetch('/extract_text', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      showError(data.error || 'Failed to extract text from file.');
+    } else {
+      elements.textInput.value = data.text;
+      elements.textInput.dispatchEvent(new Event('input'));
+    }
+  } catch (err) {
+    showError('Failed to connect to the server. Ensure backend is running.');
+  } finally {
+    elements.loadingSection.classList.add('hidden');
+    elements.fileUpload.value = ''; // reset input
+  }
+});
+
+// ── Web Speech API ───────────────────────────────────────────
+let recognition;
+let isRecording = false;
+
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  recognition.onstart = () => {
+    isRecording = true;
+    elements.micText.textContent = 'Stop';
+    elements.micBtn.style.color = '#ff4757';
+    elements.micBtn.style.borderColor = '#ff4757';
+  };
+
+  recognition.onresult = (event) => {
+    let finalTranscript = '';
+
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      if (event.results[i].isFinal) {
+        finalTranscript += event.results[i][0].transcript;
+      }
+    }
+
+    if (finalTranscript) {
+      const currentText = elements.textInput.value.trim();
+      elements.textInput.value = currentText ? currentText + ' ' + finalTranscript.trim() : finalTranscript.trim();
+      elements.textInput.dispatchEvent(new Event('input'));
+    }
+  };
+
+  recognition.onerror = (event) => {
+    console.error('Speech recognition error', event.error);
+    stopRecording();
+    showError('Microphone error: ' + event.error);
+  };
+
+  recognition.onend = () => {
+    stopRecording();
+  };
+} else {
+  if (elements.micBtn) elements.micBtn.style.display = 'none';
+}
+
+function stopRecording() {
+  isRecording = false;
+  elements.micText.textContent = 'Record';
+  elements.micBtn.style.color = '';
+  elements.micBtn.style.borderColor = '';
+  if (recognition) {
+    try { recognition.stop(); } catch(e) {}
+  }
+}
+
+elements.micBtn.addEventListener('click', () => {
+  if (!recognition) {
+    showError('Speech Recognition is not supported in your browser.');
+    return;
+  }
+  
+  if (isRecording) {
+    stopRecording();
+  } else {
+    try {
+      recognition.start();
+    } catch (e) {
+      console.error(e);
+    }
+  }
 });
 
 // ── Analysis Logic ───────────────────────────────────────────
@@ -174,6 +285,7 @@ function displayResults(data) {
   document.getElementById('stat-chars').textContent = data.char_count;
   document.getElementById('stat-tokens').textContent = data.processed_tokens;
   document.getElementById('suggestion-text').textContent = data.suggestion;
+  elements.summaryText.textContent = data.summary;
 
   renderBars(data.results);
   renderPieChart(data.results);
@@ -353,6 +465,29 @@ function generatePDF() {
     const suggLines = doc.splitTextToSize(d.suggestion, 160);
     doc.text(suggLines, 25, y);
     y += suggLines.length * 6 + 10;
+    
+    // check page break
+    if (y > 250) {
+        doc.addPage();
+        y = 20;
+    }
+
+    // Summary
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Text Summary', 20, y);
+    y += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    const summaryLines = doc.splitTextToSize(d.summary, 160);
+    doc.text(summaryLines, 25, y);
+    y += summaryLines.length * 6 + 10;
+    
+    // check page break
+    if (y > 250) {
+        doc.addPage();
+        y = 20;
+    }
 
     // Input Text
     doc.setFontSize(12);

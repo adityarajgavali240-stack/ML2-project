@@ -14,6 +14,9 @@ from flask import Flask, render_template, request, jsonify
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
+import pypdf
+import docx
+import io
 
 # ── Flask app setup ────────────────────────────────────────────────────────────
 
@@ -102,12 +105,82 @@ def preprocess_text(text):
     return ' '.join(tokens)
 
 
+def generate_summary(text, num_sentences=3):
+    """
+    Generate an extractive summary of the text based on word frequencies.
+    """
+    if not text.strip():
+        return ""
+    
+    stop_words = set(stopwords.words("english"))
+    words = word_tokenize(text.lower())
+    freq_table = dict()
+    for word in words:
+        if word not in stop_words and word not in string.punctuation:
+            if word in freq_table:
+                freq_table[word] += 1
+            else:
+                freq_table[word] = 1
+                
+    sentences = nltk.sent_tokenize(text)
+    
+    if len(sentences) <= num_sentences:
+        return text
+        
+    sentence_scores = dict()
+    for i, sentence in enumerate(sentences):
+        score = 0
+        for word in word_tokenize(sentence.lower()):
+            if word in freq_table:
+                score += freq_table[word]
+        sentence_scores[i] = score
+        
+    top_sentence_indices = sorted(sentence_scores, key=sentence_scores.get, reverse=True)[:num_sentences]
+    top_sentence_indices.sort()
+    
+    summary = " ".join([sentences[i] for i in top_sentence_indices])
+    return summary
+
+
 # ── Routes ─────────────────────────────────────────────────────────────────────
 
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+@app.route('/extract_text', methods=['POST'])
+def extract_text():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided.'}), 400
+        
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected.'}), 400
+        
+    ext = file.filename.rsplit('.', 1)[-1].lower()
+    text = ""
+    
+    try:
+        if ext == 'pdf':
+            reader = pypdf.PdfReader(file)
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
+        elif ext in ['doc', 'docx']:
+            # docx can be parsed directly from the file object
+            doc = docx.Document(file)
+            for para in doc.paragraphs:
+                text += para.text + "\n"
+        else:
+            return jsonify({'error': 'Unsupported file format. Please upload PDF or Word documents.'}), 400
+    except Exception as e:
+        return jsonify({'error': f'Failed to parse file: {str(e)}'}), 500
+        
+    if not text.strip():
+        return jsonify({'error': 'Could not extract any meaningful text from the file.'}), 400
+        
+    return jsonify({'text': text.strip()})
 
 
 @app.route('/analyze', methods=['POST'])
@@ -141,6 +214,8 @@ def analyze():
     word_count = len(text.split())
     processed_tokens = len(processed.split())
     char_count = len(text)
+    
+    summary = generate_summary(text)
 
     return jsonify({
         'results': results,
@@ -150,7 +225,8 @@ def analyze():
         'suggestion': suggestion,
         'word_count': word_count,
         'char_count': char_count,
-        'processed_tokens': processed_tokens
+        'processed_tokens': processed_tokens,
+        'summary': summary
     })
 
 
